@@ -1,112 +1,233 @@
-CREATE TABLE department(
-    department_dept_name VARCHAR(50) PRIMARY KEY,
-    department_building VARCHAR(50),
-    department_budget NUMERIC(14,2)
-);
-CREATE TABLE course(
-    course_id VARCHAR(10) PRIMARY KEY,
-    course_title VARCHAR(100),
-    course_dept_name VARCHAR(50) REFERENCES department(department_dept_name),
-    course_credits INTEGER
-);
-CREATE TABLE instructor(
-    instructor_ID VARCHAR(20) PRIMARY KEY,
-    instructor_name VARCHAR(100),
-    instructor_dept_name VARCHAR(50) REFERENCES department(department_dept_name),
-    instructor_salary NUMERIC(10, 2)
-);
-CREATE TABLE _section(
-    section_course_id VARCHAR(10) REFERENCES course(course_id),
-    section_id INTEGER,
-    section_semester VARCHAR(10),
-    section_year INTEGER,
-    section_building VARCHAR(50),
-    section_room_number VARCHAR(10),
-    section_time_slot_id INTEGER,
-    PRIMARY KEY(section_course_id,section_id,section_semester,section_year)
-);
-CREATE TABLE teaches(
-    teaches_ID VARCHAR(20) REFERENCES instructor(instructor_ID),
-    teaches_course_id VARCHAR(10),
-    teaches_sec_id INTEGER,
-    teaches_semester VARCHAR(10),
-    teaches_year INTEGER,
-    PRIMARY KEY(teaches_ID,teaches_course_id,teaches_sec_id,teaches_semester,teaches_year)
-);
-CREATE TABLE student(
-    student_ID VARCHAR(20) PRIMARY KEY,
-    student_name VARCHAR(100),
-    student_dept_name VARCHAR(50) REFERENCES department(department_dept_name),
-    student_tot_cred INTEGER
-);
-CREATE TABLE takes(
-    takes_ID VARCHAR(20) REFERENCES student(student_ID),
-    takes_course_id VARCHAR(10),
-    takes_sec_id INTEGER,
-    takes_semester VARCHAR(10),
-    takes_year INTEGER,
-    takes_grade VARCHAR(2),
-    PRIMARY KEY(takes_ID,takes_course_id,takes_sec_id,takes_semester,takes_year)
+-- creating database 
+CREATE DATABASE "UniversityDB";
+
+-- creating nessary tables
+CREATE TABLE "department" (
+    dept_name VARCHAR(60) PRIMARY KEY, 
+    building VARCHAR(60) NOT NULL,
+    budget BIGINT CHECK (budget >= 0) DEFAULT 0
 );
 
-INSERT INTO department(department_dept_name,department_building,department_budget)
-VALUES
-    ('CSE', 'CSE Building', 1500000.00),
-    ('Pharmacy', 'Pharmacy Building', 2000000.00);
-	
-INSERT INTO course(course_id,course_title,course_dept_name,course_credits)
-VALUES
-    ('CSE-1121','Computer Programming I','CSE', 3),
-    ('PHAR-2107','Organic Chemistry','Pharmacy', 3),
-    ('CSE-2423','Database Management Systems','CSE', 3),
-    ('CSE-2424','Database Management Systems Lab','CSE', 1);
-	
-INSERT INTO instructor(instructor_ID,instructor_name,instructor_dept_name,instructor_salary)
-VALUES
-    ('C172051', 'Nayeem Mahmood', 'CSE', 60000.00),
-    ('P152100', 'Dr. Abdur Rashid', 'Pharmacy', 70000.00);
-	
-INSERT INTO _section(section_course_id,section_id,section_semester,section_year,section_building,section_room_number,section_time_slot_id)
-VALUES
-    ('CSE-1121', 1, 'Spring', 2023,'CSE Building','102', 1),
-    ('PHAR-2107', 1, 'Spring', 2023,'Pharmacy Building','102', 2),
-    ('CSE-2423', 2, 'Spring', 2023,'CSE Building','502', 2),
-    ('CSE-2424', 2, 'Spring', 2023,'CSE Building','101', 4);
-	
-INSERT INTO teaches(teaches_ID,teaches_course_id,teaches_sec_id,teaches_semester,teaches_year)
-VALUES
-    ('C172051', 'CSE-1121', 1, 'Spring', 2023),
-    ('P152100', 'PHAR-2407', 1, 'Spring', 2023),
-    ('C172051', 'CSE-2423', 2, 'Spring', 2023);
-	
-INSERT INTO student(student_ID,student_name,student_dept_name,student_tot_cred)
-VALUES
-    ('C221051','Nahian Nazeeb','CSE', 65),
-    ('C213090','Ashraf Ali','CSE', 94),
-    ('P221015','Mehedi Hasan','Pharmacy', 68);
-	
-INSERT INTO takes(takes_ID,takes_course_id,takes_sec_id,takes_semester,takes_year,takes_grade)
-VALUES
-    ('C221051', 'CSE-2423', 2, 'Spring', 2023, 'A+'),
-    ('C213090', 'CSE-1121', 1, 'Spring', 2023, 'A'),
-    ('P221015', 'PHAR-2107', 1, 'Spring', 2023, 'A+');
-	
--- 1
-SELECT * FROM department;
--- 2
-SELECT * FROM course WHERE course_credits <> 3;
--- 3
-SELECT * FROM student ORDER BY student_ID ASC;
--- 4
-SELECT course_credits, COUNT(*) AS course_count FROM course GROUP BY course_credits; 
--- 5
-SELECT instructor_dept_name, COUNT(*) AS instructor_count FROM instructor GROUP BY instructor_dept_name;
--- 6
-SELECT sn.student_name , cn.course_title , si.section_id
-	FROM student sn
-		JOIN takes t ON sn.student_ID = t.takes_ID
-		JOIN _section si ON t.takes_course_id = si.section_course_id AND t.takes_sec_id = si.section_id AND t.takes_semester = si.section_semester AND t.takes_year = si.section_year
-		JOIN course cn ON t.takes_course_id = cn.course_id
-	WHERE sn.student_ID = 'C221051';
--- 7
-SELECT * FROM _section WHERE section_course_id = 'CSE-2423';
+CREATE TABLE "course" (
+    course_code VARCHAR(10) PRIMARY KEY,
+    title VARCHAR(60) UNIQUE NOT NULL,
+    dept_name VARCHAR(60) NOT NULL REFERENCES department(dept_name),
+    credit INT CHECK (credit >= 0) NOT NULL 
+);
+
+CREATE TABLE "instructor" (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(60) NOT NULL,
+    dept_name VARCHAR(60) NOT NULL REFERENCES department(dept_name),
+    salary BIGINT CHECK (salary > 0) DEFAULT 0
+);
+
+CREATE TABLE "section" (
+    id SERIAL PRIMARY KEY,
+    course_code VARCHAR(60) NOT NULL REFERENCES course(course_code),
+    semester INT NOT NULL,
+    year INT NOT NULL,
+    building VARCHAR(60) NOT NULL,
+    room_number VARCHAR(10) NOT NULL,
+    time_slot TIME NOT NULL
+);
+
+CREATE TABLE "teaches" (
+    instructor_id BIGINT NOT NULL REFERENCES instructor(id),
+    course_code VARCHAR(60) NOT NULL REFERENCES course(course_code),
+    section_id BIGINT NOT NULL REFERENCES section(id)
+);
+
+CREATE TABLE "student" (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(60) NOT NULL,
+    dept_name VARCHAR(60) NOT NULL REFERENCES department(dept_name)
+);
+
+CREATE TABLE "takes" (
+    student_id BIGINT NOT NULL REFERENCES student(id),
+    course_code VARCHAR(60) NOT NULL REFERENCES course(course_code),
+    section_id BIGINT NOT NULL REFERENCES section(id),
+    grade FLOAT CHECK(grade >= 0 AND grade <= 4 OR grade = NULL)
+);
+
+-- Inserting data
+INSERT INTO "department" (
+	dept_name, building, budget
+) VALUES (
+	'CSE', 'South', 100000
+), (
+	'English', 'South', 100000
+), (
+	'EEE', 'South', 100000
+), (
+	'BBA', 'South', 100000
+), (
+	'LAW', 'South', 100000
+);
+
+INSERT INTO "course" (
+	course_code, title, dept_name, credit
+) VALUES (
+	'CSE-2421', 'Computer Algorithms', 'CSE', 3
+), (
+	'CSE-2422', 'Computer Algorithms Lab', 'CSE', 1
+), (
+	'CSE-2423', 'Database Management Systems', 'CSE', 3
+), (
+	'CSE-2424', 'Database Management Systems Lab', 'CSE', 2
+), (
+	'CSE-2425', 'Theory of Computing', 'CSE', 2
+), (
+	'CSE-2430', 'Competitive Programming II', 'CSE', 1
+), (
+	'MATH-2407', 'Mathematics IV', 'CSE', 3
+), (
+	'ME-2412', 'Engineering Drawing Lab', 'CSE', 1
+), (
+	'GEBL-2401', 'Bangla Language and Literature', 'CSE', 2
+), (
+	'ACC-2401', 'Financial and Management Accounting', 'CSE', 2
+);
+
+INSERT INTO "instructor" (
+	id, name, dept_name, salary
+) VALUES (
+	1, 'Tanvir Ahsan', 'CSE', 100000
+), (
+	2, 'Nayeem Mahmud', 'CSE', 100000
+), (
+	3, 'Akash', 'CSE', 100000
+), (
+	4, 'Shafiullah', 'CSE', 100000
+), (
+	5, 'Fahim', 'CSE', 100000
+), (
+	6, 'Dr. Mohammad Razaul Karim', 'CSE', 100000
+), (
+	7, 'Yeasin Arafat', 'CSE', 100000
+), (
+	8, 'Jawad Awal', 'CSE', 100000
+), (
+	9, 'Jamil As-Sad', 'CSE', 100000
+), (
+	10, 'Amir Khan', 'English', 100000
+), (
+	11, 'Sulaiman Ali', 'English', 100000
+), (
+	12, 'Abbas Ullah', 'English', 100000
+), (
+	13, 'Jaber Hossain', 'English', 100000
+);
+
+INSERT INTO "section" (
+	id, course_code, semester, year, building, room_number, time_slot
+) VALUES (
+	1, 'CSE-2421', 4, 2023, 'CSE', 'C-105', '11:40:00'
+), (
+	2, 'CSE-2422', 4, 2023, 'CSE', 'C-104', '12:30:00'
+), (
+	3, 'CSE-2423', 4, 2023, 'CSE', 'C-103', '14:00:00'
+), (
+	4, 'CSE-2424', 4, 2023, 'CSE', 'C-102', '14:40:00'
+), (
+	5, 'ME-2412', 4, 2023, 'CSE', 'C-205', '15:20:00'
+), (
+	6, 'MATH-2407', 4, 2023, 'CSE', 'C-204', '16:00:00'
+);
+
+INSERT INTO "teaches" (
+	instructor_id, course_code, section_id
+) VALUES (
+	2, 'CSE-2430', 5
+), (
+	3, 'CSE-2423', 3
+), (
+	3, 'CSE-2424', 4
+), (
+	4, 'CSE-2421', 1
+), (
+	5, 'ME-2412', 5
+);
+
+INSERT INTO "student" (
+	id, name, dept_name
+) VALUES (
+	1, 'Mohammad Sayem', 'CSE'
+), (
+	2, 'Mohammad Rayhan Uddain', 'CSE'
+), (
+	3, 'Mamun Mahmud', 'CSE'
+), (
+	4, 'Mohammad Faisal Fardin Choudhury', 'CSE'
+), (
+	5, 'Faisal Haque Rifat', 'CSE'
+), (
+	6, 'Parba Das', 'CSE'
+), (
+	7, 'MD. Jobayer Hossain Arafat', 'CSE'
+);
+
+INSERT INTO "takes" (
+	student_id, course_code, section_id, grade
+) VALUES (
+	1, 'CSE-2421', 1, 3.00
+), (
+	2, 'CSE-2421', 1, 4.00
+), (
+	3, 'CSE-2421', 1, 4.00
+), (
+	4, 'CSE-2421', 1, 4.00
+), (
+	5, 'CSE-2421', 1, 4.00
+), (
+	6, 'CSE-2421', 1, 4.00
+), (
+	7, 'CSE-2421', 1, 4.00
+), (
+	1, 'CSE-2422', 2, 3.00
+), (
+	2, 'CSE-2422', 2, 4.00
+), (
+	3, 'CSE-2422', 2, 4.00
+), (
+	4, 'CSE-2422', 2, 4.00
+), (
+	5, 'CSE-2422', 2, 4.00
+), (
+	6, 'CSE-2422', 2, 4.00
+), (
+	7, 'CSE-2422', 2, 4.00
+);
+
+-- 1. Show all department
+SELECT * FROM "department";
+
+-- 2. Show all courses except credits equal 3
+SELECT * FROM "course"
+WHERE credit != 3;
+
+-- 3. Show all students order by ascending according to id
+SELECT * FROM "student"
+ORDER BY id ASC;
+
+-- 4. Count the courses according to credits
+SELECT "credit", COUNT("course_code") AS "courses" FROM "course"
+GROUP BY "credit";
+
+-- 5. Count the instructor according to department
+SELECT "dept_name", COUNT("id") AS "instructors" FROM "instructor"
+GROUP BY "dept_name"
+-- or
+SELECT "department".dept_name, COUNT("instructor".name) as "instructors" FROM "instructor"
+INNER JOIN "department" ON "instructor".dept_name = "department".dept_name
+GROUP BY "department".dept_name;
+
+-- 6. Print student name, course name, section_id of a specific student
+SELECT "name", "title" as "course_name", "section_id" FROM "takes"
+INNER JOIN "student" ON "id" = "student_id"
+INNER JOIN "course" ON "takes".course_code = "course".course_code
+WHERE "student_id" = 1;
+
+-- 7. Show the all sections which are appointed to a specific course
+SELECT * FROM "section" WHERE "course_code" = 'CSE-2422';
